@@ -1,0 +1,6 @@
+fastapi==0.139.2
+uvicorn==0.51.0
+python-multipart==0.0.32
+openai-whisper==20250625
+torch==2.13.0
+pydantic-settings==2.15.0
