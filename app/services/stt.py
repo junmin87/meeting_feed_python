@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 import whisper
 from whisper.model import Whisper
 
@@ -29,3 +32,21 @@ def transcribe(audio_path: str) -> str:
     """오디오 파일 경로를 받아 변환된 텍스트를 반환한다."""
     result = get_model().transcribe(audio_path)
     return str(result["text"]).strip()
+
+
+def transcribe_bytes(content: bytes, suffix: str) -> str:
+    """업로드된 오디오 바이트를 임시 파일에 쓴 뒤 변환하고, 끝나면 임시 파일을 정리한다.
+
+    Whisper(정확히는 ffmpeg)는 메모리 버퍼가 아니라 '파일 경로'를 입력으로 받기 때문에
+    임시 파일이 필요하다. 성공·실패 상관없이 파일이 남지 않도록 try/finally로 지운다.
+    """
+    # delete=False로 만들어 파일을 닫은 뒤에도 경로로 접근할 수 있게 한다.
+    # (열린 핸들을 Whisper에 넘기지 않고 경로만 넘기기 위함)
+    tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    try:
+        tmp.write(content)
+        tmp.close()  # ffmpeg가 읽기 전에 버퍼를 디스크로 flush 한다
+        return transcribe(tmp.name)
+    finally:
+        tmp.close()  # 이미 닫혀 있으면 무시된다(예외로 close 전에 빠져나온 경우 대비)
+        os.unlink(tmp.name)  # 변환 성공/실패와 무관하게 임시 파일 삭제

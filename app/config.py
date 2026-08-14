@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     whisper_model_size: str = "small"
     # PyTorch device — Apple Silicon은 'mps', 그 외 'cpu'/'cuda'
     whisper_device: str = "mps"
+    # 업로드 오디오 파일 크기 상한(MB). 초과하면 413으로 거절한다.
+    max_upload_size_mb: int = 25
 
 
 # 앱 전역에서 공유하는 설정 인스턴스
