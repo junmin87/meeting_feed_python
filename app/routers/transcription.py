@@ -1,10 +1,11 @@
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
 from starlette.concurrency import run_in_threadpool
 
 from app.config import settings
+from app.rate_limit import TRANSCRIBE_RATE_LIMIT, limiter
 from app.schemas.transcription import TranscriptionResponse
 from app.services import stt
 
@@ -23,7 +24,12 @@ _CHUNK_SIZE = 1024 * 1024
 
 
 @router.post("/transcribe", response_model=TranscriptionResponse)
-async def transcribe_audio(file: UploadFile = File(...)) -> TranscriptionResponse:
+# IP당 호출 제한. 초과하면 slowapi가 RateLimitExceeded를 던지고 main.py에 등록한 핸들러가 429로 변환한다.
+# (slowapi 데코레이터는 요청자 IP를 알아내야 하므로 핸들러에 Request 파라미터가 반드시 필요하다)
+@limiter.limit(TRANSCRIBE_RATE_LIMIT)
+async def transcribe_audio(
+    request: Request, file: UploadFile = File(...)
+) -> TranscriptionResponse:
     """업로드된 회의 음성 파일을 텍스트로 변환한다."""
     # 1) 확장자 검증 — 오디오가 아니면 400 (Nest의 ParseFilePipe/FileTypeValidator 역할)
     suffix = Path(file.filename or "").suffix.lower()

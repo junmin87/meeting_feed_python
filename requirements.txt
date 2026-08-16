@@ -4,3 +4,4 @@ python-multipart==0.0.32
 openai-whisper==20250625
 torch==2.13.0
 pydantic-settings==2.15.0
+slowapi==0.1.10
